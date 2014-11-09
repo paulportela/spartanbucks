@@ -2,17 +2,16 @@ package spartaGoldPrototype;
 
 import java.io.*;
 import java.security.*;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
 
 import javax.xml.bind.DatatypeConverter;
 
-public class Ledger {
+public class ProofOfWork {
 
 	private HashMap<String, Double> userMap;
-	private File ledger; // not sure if this is needed yet
-	private String currentBlock;
-	private File tempPubKey;
+	private File currentBlock;
+	private File pubKey;
+	private File sig;
 	private String characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 	private boolean chainFoundTrigger = false;
 	private String sender;
@@ -20,57 +19,31 @@ public class Ledger {
 	private String verifier;
 	private double amount;
 	private int chainLength;
+	private boolean verified = false;
 	
-	public Ledger(String sender, double amount, String receiver, String verifier) {
-		//TODO: initialize sender, receiver, verifier, amount with actual values from parameters (meaning update parameters too)
+	public ProofOfWork(String sender, double amount, String receiver) {
 		//TODO: change "ledger.txt" to "ledger.dat" near end of production
-		//this.ledger = ledger;
 		this.sender = sender;
 		this.amount = amount;
 		this.receiver = receiver;
-		this.verifier = verifier;
+		//this.verifier = verifier;
 		chainLength = 0;
 		userMap = new HashMap<String, Double>();
 		loadUserMap();
 	}
 	
-	public void verifyBlock(String currentBlockString) throws Exception {
-		currentBlock = currentBlockString;
-		//tempPubKey = publicKeyFile;
+	public void verifyBlock(File pubKeyFile, File sigFile, File currentBlockFile) throws Exception {
+		pubKey = pubKeyFile;
+		sig = sigFile;
+		currentBlock = currentBlockFile;
 		
-		
-		//TEMP ZONE
-		
-		userMap.put(sender, 1000.00);
-		System.out.println("sender " + sender + " added to userMap with amount " + userMap.get(sender));
-		userMap.put(receiver, 1000.00);
-		System.out.println("receiver " + receiver + " added to userMap with amount " + userMap.get(receiver));
-		userMap.put(verifier, 1000.00);
-		System.out.println("verifier " + verifier + " added to userMap with amount " + userMap.get(verifier));
-		
-		
-		//END TEMP ZONE
-		
-		
-		/**
-		//Verify that currentBlockString is signed by sender
-		FileInputStream keyfis = new FileInputStream(tempPubKey);
-        byte[] encKey = new byte[keyfis.available()];  
-        keyfis.read(encKey);
-
-        keyfis.close();
-
-        X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(encKey);
-
-        KeyFactory keyFactory = KeyFactory.getInstance("DSA", "SUN");
-        PublicKey pubKey = keyFactory.generatePublic(pubKeySpec);
         
-        //... TODO: finish verification code
-         * 
-         */
-        
+		VerSig verifySig = new VerSig(pubKey, sig, currentBlock);
+		if (verifySig.isVerified()) verified = true;
+		
+		
         //if statements to check for existence of users
-        if (sender != "" && amount != 0 && receiver != "") {
+        if (verified && sender != "" && amount != 0 && receiver != "") {
         	if (!userMap.containsKey(sender)) {
         		userMap.put(sender, 0.00);
         		System.out.println("sender " + sender + "added.\n");
@@ -96,7 +69,7 @@ public class Ledger {
             		}
             		
             		//concatenate random string with sender, amount, receiver, then last block on ledger
-            		String randString = buffer.toString() + currentBlock + readLastBlock();
+            		String randString = buffer.toString() + this.sender + this.amount + this.receiver + readLastBlock();
             		System.out.println(randString);
             		
             		//SHA256 hash on randString
@@ -107,14 +80,14 @@ public class Ledger {
             		
             		//convert randString to readable hashedString, truncated to first three positions
             		String hashedString = DatatypeConverter.printHexBinary(digest);
-            		String trunc = hashedString.substring(0, 1);
+            		String trunc = hashedString.substring(0, 3);
             		System.out.println("hashed string: " + hashedString);
             		System.out.println("truncation: " + trunc);
             		
             		//check to see if first three positions are zeroes
             		//writes hashedString to bottom of ledger, flips trigger
-            		if (trunc.toLowerCase().contains("0")) {
-            			BufferedWriter out = new BufferedWriter(new FileWriter("ledger.txt", true));
+            		if (trunc.toLowerCase().contains("000")) {
+            			BufferedWriter out = new BufferedWriter(new FileWriter("ledger", true));
     		            out.append(hashedString + "\r\n");
     		            out.close();
     		            chainFoundTrigger = true;
@@ -152,7 +125,7 @@ public class Ledger {
 	public void saveUserMap(Serializable object) {
 		//saves userMap locally
 		try {
-		      FileOutputStream saveFile = new FileOutputStream("userMap.dat");
+		      FileOutputStream saveFile = new FileOutputStream("userMap");
 		      ObjectOutputStream out = new ObjectOutputStream(saveFile);
 		      out.writeObject(object);
 		      out.close();
@@ -166,12 +139,12 @@ public class Ledger {
 	public void loadUserMap() {
 		//loads userMap
 		try {
-	         FileInputStream fileIn = new FileInputStream("userMap.dat");
+	         FileInputStream fileIn = new FileInputStream("userMap");
 	         ObjectInputStream in = new ObjectInputStream(fileIn);
 	         userMap = (HashMap<String, Double>) in.readObject();
 	         in.close();
 	         fileIn.close();
-	         System.out.println("userMap.dat loaded.");
+	         System.out.println("userMap loaded.");
 	      } catch (IOException i) {
 	         i.printStackTrace();
 	      } catch (ClassNotFoundException c) {
@@ -180,10 +153,14 @@ public class Ledger {
 	      };
 	}
 	
+	public double getBalance(String user) {
+		return userMap.get(user);
+	}
+	
 	public String readLastBlock() throws Exception {
 		String sCurrentLine;
 		String lastLine = "";
-	    BufferedReader br = new BufferedReader(new FileReader("ledger.txt"));
+	    BufferedReader br = new BufferedReader(new FileReader("ledger"));
 	    while ((sCurrentLine = br.readLine()) != null) {
 	        lastLine = sCurrentLine;
 	    }
@@ -193,7 +170,7 @@ public class Ledger {
 	}
 	
 	public int getChainLength() throws Exception {
-		InputStream is = new BufferedInputStream(new FileInputStream("ledger.txt"));
+		InputStream is = new BufferedInputStream(new FileInputStream("ledger"));
 	    try {
 	        byte[] c = new byte[1024];
 	        int readChars = 0;
@@ -211,8 +188,5 @@ public class Ledger {
 	        is.close();
 	    }
 	}
-	
-	public double getBalance(String user) {
-		return userMap.get(user);
-	}
+
 }

@@ -1,0 +1,13 @@
+NOTES 11/9/14
+
+-WalletGUI, ProofOfWork, GenSig, VerSig, ZipFiles classes included in latest SpartaGold project.
+
+-P2P still not implemented. Waiting on integration.
+
+-To make transactions easier, ZipFiles creates "message.zip" that includes all 5 files: transaction, signature, publickey, ledger, userMap. Now only one file needs to be sent (sending files not yet implemented). ProofOfWork/GUI must extract (not yet implemented).
+
+-GenSig properly generates public key and signature based on transaction input.
+
+-VerSig properly verifies that transaction is valid.
+
+-ProofOfWork was Ledger class, renamed. Processes proof of work, updates balances on userMap and ledger. Must listen for broadcasts to begin process (not yet implemented).

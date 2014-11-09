@@ -14,5 +14,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/TomP2P-4.4-javadoc.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/TomP2P-4.4-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/TomP2P-4.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/The Art Of/Downloads/p2p_java/p2p_java/jar_file/peerbase-java.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

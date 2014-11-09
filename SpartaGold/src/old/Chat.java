@@ -1,4 +1,4 @@
-package spartaGoldPrototype;
+package old;
 
 import org.jgroups.JChannel;
 import org.jgroups.Message;

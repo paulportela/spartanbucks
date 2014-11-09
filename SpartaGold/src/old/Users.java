@@ -1,4 +1,4 @@
-package spartaGoldPrototype;
+package old;
 
 import java.io.*;
 
